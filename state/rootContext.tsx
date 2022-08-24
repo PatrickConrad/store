@@ -1,20 +1,25 @@
-import React, {createContext, ReactNode, useCallback, useMemo, useReducer} from 'react';
-import {combineReducer, allReducers} from './reducers';
-import {callAction, actionTypes} from './actions';
-import { InitailState, IState, ITest, StateActions } from './stateInterfaces';
+import React, {createContext, ReactNode, useCallback, useEffect, useMemo, useReducer, useState} from 'react';
+import {combineReducer} from './reducers';
+import {callAction, allActions} from './allActions';
+import {testState} from './test/testReducer'
+import { IState, SetAllActions, StateActions } from '../types/stateInterfaces';
 
-const testData: ITest = {
-    tester: false
-}
-
-const initialStates = {
-    test: testData
+const initialState: IState = {
+    // user: IUser,
+    // auth: IAuth,
+    test: testState,
+    // store: IStore,
+    // product: IProduct,
+    // products: IProduct[],
+    // cart: ICart,
+    // order: IOrder,
+    // orders: IOrder[]
 }
 
 const GlobalState = createContext<{
     state: IState,
-    actions: React.Dispatch<StateActions>
-}>({state: initialStates, actions: ()=> null});
+    actions: StateActions
+}>({state: initialState, actions: allActions});
 
 interface Props {
     children: ReactNode
@@ -22,24 +27,19 @@ interface Props {
 
 const ContextProvider = (props: Props) => {
     const {children} = props;
-    const combined = combineReducer
-    const reducer = useCallback(()=>{
-        return combined(allReducers)
-    }, [combined]);
+    
+    const [appState, setAppState] = useState<IState>(initialState)
 
-    const [mainReducer, initialState] = reducer();
+    const [state, dispatch] = useReducer(combineReducer, initialState);
 
-    const [state, dispatch] = useReducer(mainReducer, initialState);
+    const actions = callAction(dispatch);
 
-    const actions = callAction(dispatch, actionTypes);
-
-    const contextValue = useMemo(()=>{
-        console.log("global state", {state, actions})
-        return {state, actions}
-    }, [state, actions]);
+    useEffect(()=>{
+        state !== appState ? setAppState(state):state;
+    }, [state]);
 
     return (
-        <GlobalState.Provider value={contextValue}>
+        <GlobalState.Provider value={{state: appState, actions}}>
             {children}
         </GlobalState.Provider>
     )
